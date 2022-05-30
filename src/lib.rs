@@ -1,4 +1,8 @@
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+
 use std::{
+    fmt,
     io::{Error, Read, Write},
     net::TcpStream,
 };
@@ -10,28 +14,58 @@ const HOST: &str = "xapi.xtb.com";
 const PORT_LIVE: &str = "5112";
 const PORT_DEMO: &str = "5124";
 
-#[derive(Serialize, Deserialize, Debug)]
-struct XtbLoginRequest {
-    command: String,
-    arguments: XtbRequestArguments,
+#[derive(Debug)]
+enum Command {
+    login,
+    getMarginLevel,
+}
+
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct XtbRequestArguments {
+struct LoginRequest {
+    command: String,
+    arguments: LoginRequestArguments,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct LoginRequestArguments {
     userId: u64,
     password: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct XtbLoginResponse {
+struct LoginResponse {
     status: bool,
     streamSessionId: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct XtbBalanceRequest {
+struct Request {
     command: String,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Response<T> {
+    pub status: bool,
+    pub returnData: T,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Balance {
+    pub balance: f64,
+    pub credit: f64,
+    pub currency: String,
+    pub equity: f64,
+    pub margin: f64,
+    pub margin_free: f64,
+    pub margin_level: f64,
+}
+
 pub struct Client {
     connector: TlsConnector,
     stream: Option<TlsStream<TcpStream>>,
@@ -59,9 +93,9 @@ impl Client {
 
         self.stream = Some(stream);
 
-        let login_request = XtbLoginRequest {
-            command: String::from("login"),
-            arguments: XtbRequestArguments {
+        let login_request = LoginRequest {
+            command: Command::login.to_string(),
+            arguments: LoginRequestArguments {
                 userId: user_id,
                 password: password,
             },
@@ -82,16 +116,16 @@ impl Client {
 
         let trimmed_data_string = &data_string.split("\n\n").next().unwrap();
 
-        let login_response: XtbLoginResponse = serde_json::from_str(&trimmed_data_string)?;
+        let login_response: LoginResponse = serde_json::from_str(&trimmed_data_string)?;
 
         self.stream_session_id = Some(login_response.streamSessionId);
 
         Ok(())
     }
 
-    pub fn balance(&mut self) -> Result<String, Error> {
-        let balance_request = XtbBalanceRequest {
-            command: String::from("getMarginLevel"),
+    pub fn balance(&mut self) -> Result<Response<Balance>, Error> {
+        let balance_request = Request {
+            command: Command::getMarginLevel.to_string(),
         };
 
         let request = serde_json::to_string(&balance_request)?;
@@ -109,6 +143,8 @@ impl Client {
 
         let trimmed_data_string = data_string.split("\n\n").next().unwrap();
 
-        Ok(trimmed_data_string.to_string())
+        let balance_response: Response<Balance> = serde_json::from_str(&trimmed_data_string)?;
+
+        Ok(balance_response)
     }
 }

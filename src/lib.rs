@@ -34,14 +34,16 @@ struct LoginRequest {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct LoginRequestArguments {
-    userId: u64,
+    #[serde(rename = "userId")]
+    user_id: u64,
     password: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct LoginResponse {
     status: bool,
-    streamSessionId: String,
+    #[serde(rename = "streamSessionId")]
+    stream_session_id: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -52,7 +54,8 @@ struct Request {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Response<T> {
     pub status: bool,
-    pub returnData: T,
+    #[serde(rename = "returnData")]
+    pub return_data: T,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -96,7 +99,7 @@ impl Client {
         let login_request = LoginRequest {
             command: Command::login.to_string(),
             arguments: LoginRequestArguments {
-                userId: user_id,
+                user_id: user_id,
                 password: password,
             },
         };
@@ -118,7 +121,7 @@ impl Client {
 
         let login_response: LoginResponse = serde_json::from_str(&trimmed_data_string)?;
 
-        self.stream_session_id = Some(login_response.streamSessionId);
+        self.stream_session_id = Some(login_response.stream_session_id);
 
         Ok(())
     }

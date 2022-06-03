@@ -6,10 +6,13 @@ This crate serves as a wrapper for the XTB API http://developers.xstore.pro/docu
 
 ```rs
 pub fn main() {
-    let mut client = Client::new();
+    // New instance of Client with specified ConnectionType
+    let mut client = Client::new(xtb_api::models::ConnectionType::Demo);
 
-    client.login(12345, String::from("password"), true).unwrap();
-
+    // Login in with userId and password
+    client.login(12345, String::from("password")).unwrap();
+    
+    // Get Balance
     let balance = client.balance().unwrap();
 }
 ```
